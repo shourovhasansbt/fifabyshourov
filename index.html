@@ -1,0 +1,387 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FIFA World Cup 2026 Draw Simulator</title>
+    <style>
+        :root {
+            --fifa-blue: #002D72;
+            --fifa-teal: #00cba0;
+            --fifa-purple: #8A3393;
+            --white: #ffffff;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #1a1a1a, #0d0d0d);
+            color: var(--white);
+            margin: 0;
+            padding: 20px;
+            text-align: center;
+        }
+
+        h1 {
+            font-size: 2.5rem;
+            margin-bottom: 10px;
+            background: linear-gradient(to right, var(--fifa-teal), var(--fifa-purple));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+        }
+
+        .controls {
+            margin: 30px 0;
+            display: flex;
+            justify-content: center;
+            gap: 15px;
+            flex-wrap: wrap;
+        }
+
+        button {
+            padding: 12px 24px;
+            font-size: 1rem;
+            font-weight: bold;
+            border: none;
+            border-radius: 50px;
+            cursor: pointer;
+            transition: transform 0.2s, box-shadow 0.2s;
+            text-transform: uppercase;
+        }
+
+        .btn-draw {
+            background: linear-gradient(45deg, var(--fifa-blue), var(--fifa-purple));
+            color: white;
+            box-shadow: 0 4px 15px rgba(138, 51, 147, 0.4);
+        }
+
+        .btn-reset {
+            background: #444;
+            color: #ccc;
+        }
+
+        button:hover {
+            transform: translateY(-2px);
+        }
+
+        button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .groups-container {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 20px;
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        .group-card {
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 12px;
+            overflow: hidden;
+            backdrop-filter: blur(5px);
+        }
+
+        .group-header {
+            background: linear-gradient(90deg, var(--fifa-blue), #000);
+            padding: 10px;
+            font-weight: bold;
+            font-size: 1.2rem;
+            border-bottom: 2px solid var(--fifa-teal);
+        }
+
+        .team-list {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+        }
+
+        .team-item {
+            padding: 12px 15px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-size: 0.95rem;
+            transition: background 0.3s;
+        }
+
+        .team-item.newly-added {
+            animation: flash 1s ease-out;
+            background: rgba(0, 203, 160, 0.2);
+        }
+
+        .pot-label {
+            font-size: 0.8em;
+            color: #888;
+            margin-right: auto;
+        }
+
+        .confed-badge {
+            font-size: 0.7em;
+            padding: 2px 6px;
+            border-radius: 4px;
+            background: #333;
+            color: #aaa;
+        }
+
+        @keyframes flash {
+            0% { background: var(--fifa-teal); color: black; }
+            100% { background: transparent; color: white; }
+        }
+
+        /* Responsive adjustments */
+        @media (max-width: 600px) {
+            .groups-container {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <h1>FIFA World Cup 2026™ <br> <span style="font-size: 0.6em; color: #ccc;">Group Draw Simulator</span></h1>
+
+    <div class="controls">
+        <button id="btnPot1" class="btn-draw" onclick="drawPot(1)">Draw Pot 1 (Seeds)</button>
+        <button id="btnPot2" class="btn-draw" onclick="drawPot(2)" disabled>Draw Pot 2</button>
+        <button id="btnPot3" class="btn-draw" onclick="drawPot(3)" disabled>Draw Pot 3</button>
+        <button id="btnPot4" class="btn-draw" onclick="drawPot(4)" disabled>Draw Pot 4</button>
+        <button class="btn-reset" onclick="resetDraw()">Reset Draw</button>
+    </div>
+
+    <div class="groups-container" id="groupsContainer">
+        </div>
+
+<script>
+    // --- DATA: Official Pots based on Dec 2025 Status ---
+    
+    const pot1 = [
+        { name: "Mexico", confed: "CONCACAF", host: "A1" }, // Host 1
+        { name: "Canada", confed: "CONCACAF", host: "B1" }, // Host 2
+        { name: "USA", confed: "CONCACAF", host: "D1" },    // Host 3
+        { name: "Spain", confed: "UEFA" },
+        { name: "Argentina", confed: "CONMEBOL" },
+        { name: "France", confed: "UEFA" },
+        { name: "England", confed: "UEFA" },
+        { name: "Brazil", confed: "CONMEBOL" },
+        { name: "Portugal", confed: "UEFA" },
+        { name: "Netherlands", confed: "UEFA" },
+        { name: "Belgium", confed: "UEFA" },
+        { name: "Germany", confed: "UEFA" }
+    ];
+
+    const pot2 = [
+        { name: "Croatia", confed: "UEFA" },
+        { name: "Morocco", confed: "CAF" },
+        { name: "Colombia", confed: "CONMEBOL" },
+        { name: "Uruguay", confed: "CONMEBOL" },
+        { name: "Switzerland", confed: "UEFA" },
+        { name: "Japan", confed: "AFC" },
+        { name: "Senegal", confed: "CAF" },
+        { name: "Iran", confed: "AFC" },
+        { name: "South Korea", confed: "AFC" },
+        { name: "Ecuador", confed: "CONMEBOL" },
+        { name: "Austria", confed: "UEFA" },
+        { name: "Australia", confed: "AFC" }
+    ];
+
+    const pot3 = [
+        { name: "Norway", confed: "UEFA" },
+        { name: "Panama", confed: "CONCACAF" },
+        { name: "Egypt", confed: "CAF" },
+        { name: "Algeria", confed: "CAF" },
+        { name: "Scotland", confed: "UEFA" },
+        { name: "Paraguay", confed: "CONMEBOL" },
+        { name: "Tunisia", confed: "CAF" },
+        { name: "Côte d'Ivoire", confed: "CAF" },
+        { name: "Uzbekistan", confed: "AFC" },
+        { name: "Qatar", confed: "AFC" },
+        { name: "Saudi Arabia", confed: "AFC" },
+        { name: "South Africa", confed: "CAF" }
+    ];
+
+    // Pot 4 includes the 6 unselected playoff spots
+    const pot4 = [
+        { name: "Jordan", confed: "AFC" },
+        { name: "Cape Verde", confed: "CAF" },
+        { name: "Ghana", confed: "CAF" },
+        { name: "Curaçao", confed: "CONCACAF" },
+        { name: "Haiti", confed: "CONCACAF" },
+        { name: "New Zealand", confed: "OFC" },
+        { name: "UEFA Playoff A", confed: "UEFA" }, // Placeholder
+        { name: "UEFA Playoff B", confed: "UEFA" }, // Placeholder
+        { name: "UEFA Playoff C", confed: "UEFA" }, // Placeholder
+        { name: "UEFA Playoff D", confed: "UEFA" }, // Placeholder
+        { name: "Intercont. Playoff 1", confed: "MIXED" }, // Placeholder
+        { name: "Intercont. Playoff 2", confed: "MIXED" }  // Placeholder
+    ];
+
+    let groups = [];
+    const groupLabels = ["A", "B", "C", "D", "E", "F", "G", "H", "I", "J", "K", "L"];
+
+    function initGroups() {
+        const container = document.getElementById('groupsContainer');
+        container.innerHTML = '';
+        groups = [];
+        
+        groupLabels.forEach(label => {
+            groups.push({ label: label, teams: [] });
+            
+            const groupDiv = document.createElement('div');
+            groupDiv.className = 'group-card';
+            groupDiv.innerHTML = `
+                <div class="group-header">Group ${label}</div>
+                <ul class="team-list" id="group-${label}"></ul>
+            `;
+            container.appendChild(groupDiv);
+        });
+    }
+
+    // Shuffle function (Fisher-Yates)
+    function shuffle(array) {
+        for (let i = array.length - 1; i > 0; i--) {
+            const j = Math.floor(Math.random() * (i + 1));
+            [array[i], array[j]] = [array[j], array[i]];
+        }
+        return array;
+    }
+
+    // Check if a team can be added to a group based on constraints
+    // Rule: No group can have more than 1 team from same confed (except UEFA: max 2)
+    function isValidMove(group, team) {
+        if (team.confed === "MIXED") return true; // Playoff winners bypass for simplicity in simulation
+
+        let confedCount = 0;
+        group.teams.forEach(t => {
+            if (t.confed === team.confed) confedCount++;
+        });
+
+        if (team.confed === "UEFA") {
+            return confedCount < 2;
+        } else {
+            return confedCount < 1;
+        }
+    }
+
+    function drawPot(potNumber) {
+        let potTeams = [];
+        if(potNumber === 1) potTeams = [...pot1];
+        if(potNumber === 2) potTeams = [...pot2];
+        if(potNumber === 3) potTeams = [...pot3];
+        if(potNumber === 4) potTeams = [...pot4];
+
+        // Shuffle Pot 1 but keep hosts fixed if it's pot 1
+        if (potNumber === 1) {
+            // Extract hosts
+            const hosts = potTeams.filter(t => t.host);
+            const others = shuffle(potTeams.filter(t => !t.host));
+            
+            // Logic to Place Hosts specifically in A, B, D
+            // We fill groups linearly, so index 0=A, 1=B, 3=D
+            
+            // We need a specific fill order for Pot 1 to respect hosts
+            let pot1Ordered = new Array(12).fill(null);
+            
+            hosts.forEach(h => {
+                if(h.host === 'A1') pot1Ordered[0] = h;
+                if(h.host === 'B1') pot1Ordered[1] = h;
+                if(h.host === 'D1') pot1Ordered[3] = h;
+            });
+            
+            let otherIdx = 0;
+            for(let i=0; i<12; i++) {
+                if(!pot1Ordered[i]) {
+                    pot1Ordered[i] = others[otherIdx++];
+                }
+            }
+            
+            // Assign to groups
+            pot1Ordered.forEach((team, index) => {
+                addGroupTeam(index, team);
+            });
+
+        } else {
+            // Logic for Pots 2, 3, 4 with constraint checking
+            // We try to find a valid permutation. 
+            // Simple backtracking or retry logic for a lightweight game.
+            
+            let success = false;
+            let attempts = 0;
+            
+            while(!success && attempts < 500) {
+                attempts++;
+                let currentPot = shuffle([...potTeams]);
+                let tempAssignment = [];
+                let possible = true;
+                
+                // Try to fit this permutation
+                for(let i=0; i<12; i++) {
+                    if(isValidMove(groups[i], currentPot[i])) {
+                        tempAssignment.push(currentPot[i]);
+                    } else {
+                        possible = false;
+                        break;
+                    }
+                }
+                
+                if(possible) {
+                    // Commit assignment
+                    tempAssignment.forEach((team, index) => {
+                        addGroupTeam(index, team);
+                    });
+                    success = true;
+                }
+            }
+            
+            if(!success) {
+                // Fallback: Just place them if constraints fail (rare but possible in simple code)
+                alert("Complex constraint conflict! Placing remaining teams randomly.");
+                let currentPot = shuffle([...potTeams]);
+                currentPot.forEach((team, index) => {
+                    addGroupTeam(index, team);
+                });
+            }
+        }
+
+        // Update Buttons
+        document.getElementById(`btnPot${potNumber}`).disabled = true;
+        document.getElementById(`btnPot${potNumber}`).style.opacity = "0.5";
+        if(potNumber < 4) {
+            document.getElementById(`btnPot${potNumber + 1}`).disabled = false;
+        }
+    }
+
+    function addGroupTeam(groupIndex, team) {
+        groups[groupIndex].teams.push(team);
+        
+        const ul = document.getElementById(`group-${groupLabels[groupIndex]}`);
+        const li = document.createElement('li');
+        li.className = 'team-item newly-added';
+        li.innerHTML = `
+            <span class="confed-badge">${team.confed}</span>
+            <span style="flex-grow:1">${team.name}</span> 
+        `;
+        ul.appendChild(li);
+    }
+
+    function resetDraw() {
+        initGroups();
+        document.getElementById('btnPot1').disabled = false;
+        document.getElementById('btnPot1').style.opacity = "1";
+        document.getElementById('btnPot2').disabled = true;
+        document.getElementById('btnPot3').disabled = true;
+        document.getElementById('btnPot4').disabled = true;
+    }
+
+    // Initialize on load
+    initGroups();
+
+</script>
+</body>
+</html>
